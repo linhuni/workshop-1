@@ -1,0 +1,64 @@
+[
+{
+	"uri": "//localhost:1313/",
+	"title": "Deploy a static website on EC2 instance using a bash script",
+	"tags": [],
+	"description": "",
+	"content": "Deploy a static website on EC2 instance using a bash script This workshop will show how to deploy a adynamic website on EC2 with a bash script, including preparing environment ( VPC, subnets, security groups, keypair, route table\u0026hellip;), launching an EC2, installing a web server then launching it\nMain Content Introduction Environment preparation Launch an EC2 Web server installation Verify development Clean up resources "
+},
+{
+	"uri": "//localhost:1313/1-introduction/",
+	"title": "Introduction",
+	"tags": [],
+	"description": "",
+	"content": "Overview In this hands-on exercise, you will automate the deployment of a static website on AWS by creating a Bash script that utilizes the AWS CLI. This script will replicate the manual deployment steps and enable you to launch an entire website with a single executable file.\nBy the end of this exercise, you will have a fully functional website hosted on an EC2 instance.\nThe AWS services used in this workshop include:\nVisual Studio Code (VS Code): A code editor used to write Bash scripts.\nAmazon VPC (Virtual Private Cloud): A service that allows you to create an isolated virtual network within AWS.\nAWS CLI (Command Line Interface): A command-line tool that enables interaction with AWS services via terminal or scripts.\nAmazon EC2 (Elastic Compute Cloud): A flexible and powerful cloud server that allows you to deploy and manage containerized applications on AWS infrastructure.\nWorkflow Environment Setup: Create and configure the necessary network environment for the EC2 instance. In this case, you need to create a VPC and configure essential components such as Subnet, Internet Gateway, Route Table, Security Group, and Key Pair so that the EC2 instance has its own operating environment. Launching EC2 Instance : Provisioning an EC2 instance within the pre-configured VPC environment. Ensure the instance is associated with the appropriate subnet, security group, and key pair to allow remote access and HTTP traffic. SSH into the EC2 instance and install Apache Web Server: Securely connect to your EC2 instance via SSH using your private key. Once connected, update the system packages and install the Apache HTTP server. Upload Website Files to EC2: Transfer your static website files (HTML, CSS, JavaScript, etc.) from your local machine to the EC2 instance. Place them in the Apache web directory /var/www/html/. After uploading, adjust file ownership and permissions as needed to ensure Apache can serve the files properly. Verify Deployment: Access the public IP address of the EC2 instance through a web browser to confirm the website is running. "
+},
+{
+	"uri": "//localhost:1313/2-env-preparation/",
+	"title": "Environment preparation",
+	"tags": [],
+	"description": "",
+	"content": " In this article, we will practice on a Mac machine.\nDeclare Variables in a Bash Script When Deploying AWS Infrastructure By declaring variables in a Bash script to centralize configuration, the script can be easier to manage, update, and reuse. Therefore, in this bash scripts, every values are declared as variables.\nCreate VPC This command is used to create a new Virtual Private Cloud (VPC) in Amazon Web Services (AWS):\naws ec2 create-vpc : Creates a VPPC \u0026mdash;cidr-block $VPC_CIDR : Specifies the IP address range for the VPC in CIDR notation \u0026mdash;query \u0026ldquo;Vpc.VpcId\u0026rdquo; + \u0026ndash;output text : Extracts the VPC ID and stores it into the variable VPC_ID. In essence, this is automating network setup in AWS via the AWS CLI.\nCreate Subnet This command is used to create a subnet in the Virtual Private Cloud (VPC): aws ec2 create-subnet : Creates a subnet \u0026mdash;vpc-id $VPC_ID : The id of the VPC that the subnet is within \u0026mdash;cidr-block $SUBNET_CIDR : The CIDR notation of the subnet \u0026mdash;availibility-zone $AVAILIBILITY_ZONE : The availibity zone \u0026mdash;query \u0026ldquo;Subnet.SubnetID\u0026rdquo; + \u0026ndash;output text : Extracts the subnet ID and stores it into the variable SUBNET_ID. Fundamentally, it automates the establishment of networking components in AWS using the AWS CLI.\nCreate Internet Gateway and Attach to VPC There are 2 commands which are creating IGW then attach to VPC:\nIGW_ID: The varibale contains the value of IGW\u0026rsquo;s id aws ec2 create-intertet-gateway : Creates an IGW \u0026mdash;query \u0026ldquo;InternetGateway.InternetGatewayId\u0026rdquo; + \u0026ndash;output text: Extracts the IGW ID and stores it into the variable ROUTE_TABLE_ID. aws ec2 attach-internet-hateway: Attachs to VPC \u0026mdash;vpc-id $VPC_ID: The VPC\u0026rsquo;s id \u0026mdash;internet-gateway-id $IGW_ID: The VPC\u0026rsquo;s id Essentially, this script simplifies the creation and configuration of AWS networking resources via the AWS CLI.\nCreate Route Table and associate with subnet This script creates a Route Table, adds a route to the Internet Gateway, associates the Route Table with a Subnet.\nROUTE_TABLE_ID: The varibale contains the value of IGW\u0026rsquo;s id. aws ec2 create-route-table : Creates a route table. \u0026mdash;query \u0026ldquo;RouteTbale.RouteTableId\u0026rdquo; + \u0026ndash;output text: Extracts the Route Table ID and stores it into the variable ROUTE_TABLE_ID. aws ec2 create-route: Attachs to VPC. \u0026mdash;vpc-id $VPC_ID: The VPC\u0026rsquo;s id. \u0026mdash;internet-gateway-id $IGW_ID: The VPC\u0026rsquo;s id. aws ec2 associate-route-table : Command to connect the route table to the specific subnet. \u0026mdash;subnet-id $SUBNET_ID : Points the ID of the subnet you want to attach the route table to. \u0026mdash;route-table-id $ROUTE_TABLE_ID : Points the ID of the route table being associated. aws ec2 create-security-group: Creates a security group. \u0026mdash;group-name $SECURITY_GROUP_NAME: Names the Security Group. \u0026mdash;description \u0026ldquo;\u0026hellip;\u0026rdquo;: Provides a description for documentation purposes. \u0026mdash;vpc-id $VPC_ID: Specifies which VPC the Security Group belongs to. \u0026mdash;query \u0026ldquo;GroupId\u0026rdquo; + \u0026ndash;output text: Extracts the Security Group ID and stores it into the variable SECURITY_GROUP_ID. aws ec2 authorize-security-group-ingress: This AWS CLI command is used to allow incoming (inbound) traffic to EC2 instances (or other resources) by modifying a Security Group \u0026mdash;group-id $SECURITY_GROUP_ID: Points out the SG that is needed to set the inbound rule. \u0026mdash;protocol tcp: Defines the protocol \u0026mdash;port 80: Defines the port 80 \u0026mdash;cidr 0.0.0.0/0: To allow TCP traffic on port 22 (SSH) from any IP address, we will do the same step as allowing SSH traffic on port 80 aws ec2 create-key-pair: Creates a a keypair. \u0026mdash;key-name $KEY_PAIR_NAME: Names the key pair. \u0026ndash; \u0026gt; Downloads/$KEY_PAIR_NAME.pem: Redirects the key material into a file for later use when connecting to the EC2. \u0026mdash;query \u0026ldquo;KeyMaterial\u0026rdquo; + \u0026ndash;output text: Extracts the Security Group ID and stores it into the variable SECURITY_GROUP_ID. "
+},
+{
+	"uri": "//localhost:1313/3-launch-ec2/",
+	"title": "Launch an EC2",
+	"tags": [],
+	"description": "",
+	"content": "Launching In this guide, we will learn how to launch an EC2 instance, wait for the instance to become available, and then retrieve its public IP address so we can connect to it.\naws ec2 run-instance: Launchs an ec2 instance. \u0026mdash;imageo-id $IMAGE_ID: Sets the image id. \u0026mdash;count 1: Provides an information that the EC2 is create in one AZ. \u0026mdash;instance-type $INSTANCE_TYPE: Sets the instance type of the instance. \u0026mdash;key-name $KEY_PAIR_NAME: Sets the key pair. \u0026mdash;security-group-ids $SECURITY_GROUP_ID: Chooses the security group \u0026mdash;subnet_id $SUBNET_ID: Sets which subnet the ec2 is within \u0026mdash;associate-public-ip-address + \u0026ndash;query \u0026ldquo;InstanceId.InstanceId[0] + \u0026ndash;output text: Automatically assign a public IP address to the EC2 instance to enable Internet access, and retrieve the ID of the newly created EC2 instance from the JSON response. Make sure the EC2 instance is fully initialized and ready before doing anything else. Therefore, you can SSH into the instance or use it publicly (for web server, apps, etc.).\naws ec2 wait instance-running \u0026ndash;instance-ids $INSTANCE_ID: Tells the script to pause and wait until the EC2 instance identified by $INSTANCE_ID changes its state to running. aws ec2 describe-instances \u0026ndash;instance-ids $INSTANCE_ID: to get details about the instance \u0026mdash;query \u0026ldquo;Reservations[0].Instances[0].PublicIpAddress\u0026rdquo; \u0026ndash;output text: Extracts specifically the Public IP address. "
+},
+{
+	"uri": "//localhost:1313/4-web-server-installation/",
+	"title": "SSH into the EC2 instance and install Apache Web Server",
+	"tags": [],
+	"description": "",
+	"content": "Overview In this step, we connect to the EC2 instance via SSH, install the Apache web server, and upload our website files. We configure file permissions, move the content into Apache’s web directory, and restart the server to make the website live. This finalizes the setup, turning the EC2 instance into a fully operational public web server.\nSSH into the EC2 then install Apache Web Server chmod 400 ~/Downloads/$KEY_PAIR_NAME.pem : Set an appropriate permission for the key pair. ssh -i ~/Downloads/$KEY_PAIR_NAME.pem ec2-user@$INSTANCE_PUBLIC_IP : To connect to an EC2 instance sudo yum update -y : Updates all installed software packages to their latest versions. sudo yum install -y httpd : Installs Apache Web Server (httpd package) on the instance. sudo systemctl start httpd : Immediately starts the Apache (httpd) service. sudo systemctl enable httpd : Configures Apache (httpd) to automatically start every time the EC2 instance reboots. sudo rm -rf /var/www/html/ : Forcefully deletes (rm -rf) all existing files in Apache\u0026rsquo;s default web directory (/var/www/html/). \u0026laquo;EOF EOF : Use \u0026lsquo;\u0026laquo;EOF\u0026rsquo; to send multiple commands into one SSH session cleanly, efficiently, and automatically. Upload website file Uploading the entire website content (HTML, images, etc.) into the EC2 instance, preparing to move it to the Apache web root. sudo find /home/ec2-user/website -maxdepth 1 -type f: Look only in /website/, not inside subfolders, for files only (not folders). exec mv {} /var/www/html/: For every file found, move it to /var/www/html/ sudo mv /home/ec2-user/website/thumuc.img/ /home/ec2-user/website/anhbaitap/ /var/www/html/: Moves entire folders (thumuc.img, anhbaitap) into the Apache root Print out the website echo \u0026ldquo;Website is now live! Visit: http://$INSTANCE_PUBLIC_IP\u0026rdquo;: Print out the IP of the website\nYou can copy all of the whole folder \u0026ldquo;website\u0026rdquo; into the var/www/html but do it as this way, you can easily maintain control and structure — making sure your website is deployed exactly as intended.\n"
+},
+{
+	"uri": "//localhost:1313/5-verify-deployment/",
+	"title": "Verify Deployment",
+	"tags": [],
+	"description": "",
+	"content": "Run bash scipt In this section, we will run the bash script using AWS CLI\nbash NAME.sh: run the scipt "
+},
+{
+	"uri": "//localhost:1313/6-clean-up/",
+	"title": "Clean Up Resources",
+	"tags": [],
+	"description": "",
+	"content": "Clean Up Resources Since the infrastructure was created using a Bash script, a corresponding script will be used to automate its cleanup. "
+},
+{
+	"uri": "//localhost:1313/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "//localhost:1313/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]
