@@ -1,0 +1,64 @@
+[
+{
+	"uri": "//localhost:49299/vi/",
+	"title": "Deploy a static website on EC2 instance using a bash script",
+	"tags": [],
+	"description": "",
+	"content": "Deploy a static website on EC2 instance using a bash script Bài này sẽ hướng dẫn cách triển khai một trang web tĩnh trên EC2 sử dụng Bash script, bao gồm các bước như chuẩn bị môi trường cho EC2 (VPC, subnet, nhóm bảo mật, cặp khóa, bảng định tuyến\u0026hellip;), khởi chạy một EC2, cài đặt máy chủ web và chạy nó.\nNội dung chính Giới thiệu Chuẩn bị môi trường Khởi chạy EC2 Cài đặt máy chủ web Dọn dẹp tài nguyên "
+},
+{
+	"uri": "//localhost:49299/vi/1-introduction/",
+	"title": "Giới thiệu",
+	"tags": [],
+	"description": "",
+	"content": "Tổng quan Trong bài thực hành này, bạn sẽ tự động hóa việc triển khai một trang web tĩnh trên AWS bằng cách tạo một Bash script sử dụng AWS CLI. Script này sẽ tái hiện các bước thực hiện thủ công và cho phép triển khai toàn bộ trang web chỉ với một tệp thực thi duy nhất.\nSau khi kết thúc bài thực hành này, bạn sẽ có một trang web đang hoạt động và được lưu trữ trên một EC2.\nNhững dịch vụ được sử dụng trong workshop bao gồm:\nVS studio (Visual Studio Code): Trình soạn thảo code dùng cho việc viết file Bash.\nAmazon VPC (Virtual Private Cloud): là dịch vụ cho phép bạn tạo một mạng riêng ảo trong AWS.\nAWS CLI (Command Line Interface): là công cụ dòng lệnh giúp bạn tương tác với các dịch vụ AWS từ terminal hoặc script.\nAmazon EC2 (Amazon Elastic Compute Cloud): EC2 cung cấp máy chủ đám mây linh hoạt và mạnh mẽ để bạn triển khai, chạy container và quản lý các ứng dụng container hóa của mình trên cơ sở hạ tầng AWS.\nMô tả tiến trình Chuẩn bị hạ tầng mạng: Tạo và cấu hình môi trường mạng cần thiết cho EC2 instance. Trong trường hợp này, bạn cần tạo một VPC và cấu hình các thành phần thiết yếu như Subnet, Internet Gateway, Route Table, Security Group và Key Pair để đảm bảo EC2 instance hoạt động trong một môi trường riêng biệt. Khởi tạo EC2 instance: Triển khai một EC2 instance trong môi trường VPC đã được cấu hình sẵn. Đảm bảo instance được gán đúng subnet, security group và key pair để cho phép truy cập từ xa và lưu lượng HTTP. Kết nối SSH và cài Apache: Kết nối an toàn đến EC2 instance thông qua SSH bằng khóa riêng tư của bạn. Sau khi kết nối, tiến hành cập nhật các gói hệ thống và cài đặt máy chủ web Apache HTTP. Tải tệp website lên EC2: Tải các tệp trang web tĩnh của bạn (HTML, CSS, JavaScript, v.v.) từ máy cục bộ lên EC2 instance. Đặt các tệp này vào thư mục web của Apache tại /var/www/html/. Sau khi tải lên, điều chỉnh quyền sở hữu và phân quyền tệp nếu cần thiết để Apache có thể phục vụ các tệp đúng cách. Kiểm tra kết quả: Truy cập IP public của EC2 từ trình duyệt. "
+},
+{
+	"uri": "//localhost:49299/vi/2-env-preparation/",
+	"title": "Thiết lập môi trường cho EC2",
+	"tags": [],
+	"description": "",
+	"content": "Khai báo biến trong Bash Script khi triển khai hạ tầng AWS Bằng cách khai báo biến trong Bash script để tập trung cấu hình, script trở nên dễ quản lý, cập nhật và tái sử dụng hơn. Do đó, trong các script này, mọi giá trị đều được khai báo dưới dạng biến.\nTạo VPC Lệnh này được sử dụng để tạo một Virtual Private Cloud (VPC) mới trên AWS:\naws ec2 create-vpc : Tạo một VPC \u0026mdash;cidr-block $VPC_CIDR : Chỉ định dải địa chỉ IP cho VPC theo định dạng CIDR \u0026mdash;query \u0026ldquo;Vpc.VpcId\u0026rdquo; + \u0026ndash;output text : Trích xuất VPC ID và lưu vào biến VPC_ID Đây là cách tự động hóa việc thiết lập mạng trên AWS thông qua AWS CLI.\nCreate Subnet Lệnh này được sử dụng để tạo một subnet trong VPC:\naws ec2 create-subnet : Tạo một subnet \u0026mdash;vpc-id $VPC_ID : ID của VPC chứa subnet \u0026mdash;cidr-block $SUBNET_CIDR : Dải địa chỉ CIDR của subnet \u0026mdash;availibility-zone $AVAILIBILITY_ZONE : Chỉ định availability zone \u0026mdash;query \u0026ldquo;Subnet.SubnetID\u0026rdquo; + \u0026ndash;output text : Trích xuất Subnet ID và lưu vào biến SUBNET_ID Lệnh này tự động hoá việc thiết lập các thành phần mạng trong AWS bằng AWS CLI.\nTạo Internet Gateway và gắn vào VPC Tạo Internet Gateway (IGW) và sau đó gắn nó vào VPC:\nIGW_ID: Biến lưu giá trị ID của IGW aws ec2 create-intertet-gateway : Tạo một IGW \u0026mdash;query \u0026ldquo;InternetGateway.InternetGatewayId\u0026rdquo; + \u0026ndash;output text: Trích xuất IGW ID và lưu vào biến ROUTE_TABLE_ID aws ec2 attach-internet-hateway: Gắn IGW vào VPC \u0026mdash;vpc-id $VPC_ID: ID của VPC \u0026mdash;internet-gateway-id $IGW_ID: ID của IGW Đây là những lệnh dùng để tạo và cấu hình các tài nguyên mạng trên AWS thông qua AWS CLI.\nTạo Route Table và liên kết với Subnet Script này tạo Route Table, thêm route tới Internet Gateway và liên kết Route Table đó với một Subnet:\nROUTE_TABLE_ID: Biến lưu giá trị ID của IGW aws ec2 create-route-table : Tạo Route Table \u0026mdash;query \u0026ldquo;RouteTbale.RouteTableId\u0026rdquo; + \u0026ndash;output text: Trích xuất Route Table ID và lưu vào biến ROUTE_TABLE_ID aws ec2 create-route: Tạo route trong VPC \u0026mdash;vpc-id $VPC_ID: ID của VPC \u0026mdash;internet-gateway-id $IGW_ID: ID của IGW aws ec2 associate-route-table : Liên kết Route Table với Subnet cụ thể \u0026mdash;subnet-id $SUBNET_ID : ID của subnet cần liên kết \u0026mdash;route-table-id $ROUTE_TABLE_ID : ID của Route Table đang được gán aws ec2 create-security-group: Tạo một Security Group \u0026mdash;group-name $SECURITY_GROUP_NAME: Đặt tên cho Security Group \u0026mdash;description \u0026ldquo;\u0026hellip;\u0026rdquo;: Mô tả để dễ quản lý \u0026mdash;vpc-id $VPC_ID: Chỉ định VPC chứa Security Group này \u0026mdash;query \u0026ldquo;GroupId\u0026rdquo; + \u0026ndash;output text: Trích xuất Security Group ID và lưu vào biến SECURITY_GROUP_ID aws ec2 authorize-security-group-ingress: Cho phép lưu lượng vào (inbound) thông qua Security Group \u0026mdash;group-id $SECURITY_GROUP_ID: ID của Security Group cần thiết lập rule \u0026mdash;protocol tcp: Chỉ định giao thức \u0026mdash;port 80: Cho phép truy cập qua cổng 80 (HTTP) \u0026mdash;cidr 0.0.0.0/0: Mở toàn bộ dải IP To allow TCP traffic on port 22 (SSH) from any IP address, we will do the same step as allowing SSH traffic on port 80 aws ec2 create-key-pair: Creates a a keypair. \u0026mdash;key-name $KEY_PAIR_NAME: Names the key pair. \u0026ndash; \u0026gt; Downloads/$KEY_PAIR_NAME.pem: Redirects the key material into a file for later use when connecting to the EC2. \u0026mdash;query \u0026ldquo;KeyMaterial\u0026rdquo; + \u0026ndash;output text: Extracts the Security Group ID and stores it into the variable SECURITY_GROUP_ID. "
+},
+{
+	"uri": "//localhost:49299/vi/3-launch-ec2/",
+	"title": "Khởi tạo EC2",
+	"tags": [],
+	"description": "",
+	"content": "Chuẩn bị Bây giờ chúng ta sẽ tìm hiểu cách khởi tạo một EC2 instance bằng file Bash, chờ cho đến khi instance sẵn sàng, và sau đó lấy địa chỉ IP công khai để có thể kết nối từ xa.\naws ec2 run-instance: Khởi tạo một EC2 instance. \u0026mdash;imageo-id $IMAGE_ID: Thiết lập ID của AMI (Amazon Machine Image). \u0026mdash;count 1: Chỉ định số lượng instance tạo là 1 (trong một Availability Zone). \u0026mdash;instance-type $INSTANCE_TYPE: Chọn loại instance sử dụng. \u0026mdash;key-name $KEY_PAIR_NAME: Thiết lập key pair để truy cập. \u0026mdash;security-group-ids $SECURITY_GROUP_ID: Chọn Security Group cho instance. \u0026mdash;subnet_id $SUBNET_ID: Chỉ định subnet mà EC2 nằm trong đó. \u0026mdash;associate-public-ip-address + \u0026ndash;query \u0026ldquo;InstanceId.InstanceId[0] + \u0026ndash;output text: Tự động gán địa chỉ IP công khai cho EC2 để truy cập Internet, đồng thời truy xuất ID của EC2 mới được tạo từ phản hồi JSON. Đảm bảo rằng EC2 instance đã hoàn toàn khởi tạo và sẵn sàng trước khi thực hiện bất kỳ thao tác nào khác. Khi đó, bạn có thể SSH vào hoặc sử dụng instance công khai (như chạy web server, ứng dụng, v.v.). aws ec2 wait instance-running \u0026ndash;instance-ids $INSTANCE_ID: Yêu cầu script tạm dừng và đợi cho đến khi instance có ID là $INSTANCE_ID chuyển sang trạng thái “running”. aws ec2 describe-instances \u0026ndash;instance-ids $INSTANCE_ID: Lấy thông tin chi tiết về instance. \u0026mdash;query \u0026ldquo;Reservations[0].Instances[0].PublicIpAddress\u0026rdquo; \u0026ndash;output text: Trích xuất cụ thể địa chỉ IP công khai. "
+},
+{
+	"uri": "//localhost:49299/vi/4-web-server-installation/",
+	"title": "Kết nối vào EC2 qua SSH",
+	"tags": [],
+	"description": "",
+	"content": "Tổng quan Trong bước này, chúng ta sẽ kết nối tới EC2 instance qua SSH, cài đặt máy chủ web Apache, và upload các tệp của website. Sau đó, chúng ta cấu hình quyền truy cập tệp, di chuyển nội dung vào thư mục web của Apache, và khởi động lại dịch vụ để đưa website lên hoạt động. Bước này hoàn tất việc thiết lập, biến EC2 thành một máy chủ web công khai đầy đủ chức năng.\nSSH vào EC2 và cài đặt Apache Web Server chmod 400 ~/Downloads/$KEY_PAIR_NAME.pem : Đặt quyền truy cập phù hợp cho file key pair ssh -i ~/Downloads/$KEY_PAIR_NAME.pem ec2-user@$INSTANCE_PUBLIC_IP : Kết nối đến EC2 instance sudo yum update -y : Cập nhật tất cả các gói phần mềm đã cài đặt lên phiên bản mới nhất sudo yum install -y httpd : Cài đặt Apache Web Server (gói httpd) sudo systemctl start httpd : Khởi động dịch vụ Apache (httpd) sudo systemctl enable httpd : Cấu hình Apache tự động chạy mỗi khi EC2 được khởi động lại sudo rm -rf /var/www/html/ : Xóa toàn bộ nội dung mặc định trong thư mục web của Apache \u0026laquo;EOF EOF : Sử dụng \u0026lsquo;\u0026laquo;EOF\u0026rsquo; để gửi nhiều lệnh trong một phiên SSH một cách gọn gàng và tự động. Upload toàn bộ nội dung website (HTML, hình ảnh, v.v.) lên EC2, chuẩn bị để chuyển vào thư mục gốc web của Apache.\nsudo find /home/ec2-user/website -maxdepth 1 -type f: Chỉ tìm các tệp (không bao gồm thư mục con) trong thư mục /website/ exec mv {} /var/www/html/: Di chuyển từng tệp được tìm thấy vào /var/www/html/ sudo mv /home/ec2-user/website/thumuc.img/ /home/ec2-user/website/anhbaitap/ /var/www/html/: Di chuyển toàn bộ thư mục thumuc.img và anhbaitap vào thư mục gốc của Apache Print out the website echo \u0026ldquo;Website is now live! Visit: http://$INSTANCE_PUBLIC_IP\u0026rdquo;: In ra địa chỉ IP công khai để truy cập website\nBạn có thể copy toàn bộ thư mục “website” vào /var/www/html, nhưng làm theo cách này giúp bạn kiểm soát và tổ chức rõ ràng — đảm bảo website được triển khai chính xác như mong muốn.\n"
+},
+{
+	"uri": "//localhost:49299/vi/5-verify-deployment/",
+	"title": "Triển khai website",
+	"tags": [],
+	"description": "",
+	"content": "Khởi chạy file bash Trong phần này, chúng ta sẽ chạy Bash script bằng cách sử dụng AWS CLI\nbash NAME.sh: chạy file "
+},
+{
+	"uri": "//localhost:49299/vi/6-clean-up/",
+	"title": "Dọn Dẹp Tài Nguyên",
+	"tags": [],
+	"description": "",
+	"content": "Dọn Dẹp Tài Nguyên Vì hạ tầng đã được tạo bằng Bash script, một script tương ứng sẽ được sử dụng để tự động hoá quá trình xoá bỏ. "
+},
+{
+	"uri": "//localhost:49299/vi/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "//localhost:49299/vi/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]
